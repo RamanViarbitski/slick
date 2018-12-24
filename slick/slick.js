@@ -49,6 +49,7 @@
                 autoplay: false,
                 autoplaySpeed: 3000,
                 centerMode: false,
+                centerScale: false,
                 centerPadding: '50px',
                 cssEase: 'ease',
                 customPaging: function(slider, i) {
@@ -77,6 +78,7 @@
                 slidesPerRow: 1,
                 slidesToShow: 1,
                 slidesToScroll: 1,
+                scale: 1.2,
                 speed: 500,
                 swipe: true,
                 swipeToSlide: false,
@@ -110,6 +112,9 @@
                 slideWidth: null,
                 $slideTrack: null,
                 $slides: null,
+                $currentSlide: null,
+                $prevSlide: null,
+                $nextSlide: null,
                 sliding: false,
                 slideOffset: 0,
                 swipeLeft: null,
@@ -310,6 +315,10 @@
             } else {
 
                 _.applyTransition();
+                _.applyTransition(_.currentSlide);
+                _.applyTransition(_.currentSlide + 1);
+                _.applyTransition(_.currentSlide - 1);
+
                 targetLeft = Math.ceil(targetLeft);
 
                 if (_.options.vertical === false) {
@@ -319,10 +328,19 @@
                 }
                 _.$slideTrack.css(animProps);
 
+                if (_.options.centerScale) {
+                    _.$currentSlide.css('transform', 'scale(' + _.options.scale + ')');
+                    _.$nextSlide.css('transform', 'scale(' + 1 + ')');
+                    _.$prevSlide.css('transform', 'scale(' + 1 + ')');
+                }
+
                 if (callback) {
                     setTimeout(function() {
 
                         _.disableTransition();
+                        _.disableTransition(_.currentSlide);
+                        _.disableTransition(_.currentSlide + 1);
+                        _.disableTransition(_.currentSlide - 1);
 
                         callback.call();
                     }, _.options.speed);
@@ -376,6 +394,10 @@
 
         if (_.options.fade === false) {
             _.$slideTrack.css(transition);
+
+            if (_.options.centerScale) {
+                _.$slides.eq(slide).css(transition);
+            }
         } else {
             _.$slides.eq(slide).css(transition);
         }
@@ -924,6 +946,11 @@
 
         if (_.options.fade === false) {
             _.$slideTrack.css(transition);
+
+            if (_.options.centerScale) {
+                _.$slides.eq(slide).css(transition);
+            }
+
         } else {
             _.$slides.eq(slide).css(transition);
         }
@@ -1303,7 +1330,12 @@
             _.updateDots();
             _.checkResponsive(true);
             _.focusHandler();
+            _.updateScaledSlides();
 
+        }
+
+        if (_.options.centerScale) {
+            _.animateSlide();
         }
 
         if (creation) {
@@ -2588,6 +2620,7 @@
 
         _.updateDots();
         _.updateArrows();
+        _.updateScaledSlides();
 
         if (_.options.fade === true) {
             if (dontAnimate !== true) {
@@ -2865,8 +2898,33 @@
         }
 
         _.setCSS(_.swipeLeft);
-
+        _.setScaleCSS(swipeDirection, swipeLength);
     };
+
+    Slick.prototype.setScaleCSS = function(swipeDirection, swipeLength) {
+        var _ = this,
+          centerScale,
+          sideScale;
+
+        if(_.options.centerScale) {
+            if (_.options.scale - (swipeLength / 1000) >= 1) {
+                centerScale = _.options.scale - (swipeLength / 1000);
+            } else {
+                centerScale = 1;
+            }
+            if (1 + (swipeLength / 1000) <= _.options.scale) {
+                sideScale = 1 + (swipeLength / 1000);
+            } else {
+                sideScale = _.options.scale;
+            }
+            _.$currentSlide.css('transform', 'scale(' + centerScale + ')');
+            if (swipeDirection === 'left') {
+                _.$nextSlide.css('transform', 'scale(' + sideScale + ')');
+            } else if (swipeDirection === 'right') {
+                _.$prevSlide.css('transform', 'scale(' + sideScale + ')');
+            }
+        }
+    }
 
     Slick.prototype.swipeStart = function(event) {
 
@@ -2996,6 +3054,13 @@
         }
 
     };
+
+    Slick.prototype.updateScaledSlides = function() {
+        var _ = this;
+        _.$currentSlide = _.$slides.eq(_.currentSlide);
+        _.$prevSlide = _.$slides.eq(_.currentSlide - 1);
+        _.$nextSlide = _.$slides.eq(_.currentSlide + 1);
+    }
 
     Slick.prototype.visibility = function() {
 
